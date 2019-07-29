@@ -7,7 +7,7 @@ class CarCrimeCity : public olc::PixelGameEngine
 public:
 	CarCrimeCity()
 	{
-		sAppName = "CarCrime";
+		sAppName = "Car Crime City";
 	}
 
 public:
@@ -38,7 +38,7 @@ public:
 		SetDrawTarget(nullptr);
 
 		// the car
-		sprCar = new olc::Sprite("car_top.png");
+		sprCar = new olc::Sprite("res/car_top.png");
 
 		// A cube
 		meshCube.tris = {
@@ -125,12 +125,25 @@ public:
 		if (GetKey(olc::Key::Z).bHeld) fCameraZ += 5.0f * fElapsedTime;
 		if (GetKey(olc::Key::X).bHeld) fCameraZ -= 5.0f * fElapsedTime;
 
+		if (GetKey(olc::Key::LEFT).bHeld) fCarAngle -= 4.0f * fElapsedTime;
+		if (GetKey(olc::Key::RIGHT).bHeld) fCarAngle += 4.0f * fElapsedTime;
+
+		olc::GFX3D::vec3d a = { 1, 0, 0 };
+		olc::GFX3D::mat4x4 m = olc::GFX3D::Math::Mat_MakeRotationZ(fCarAngle);
+		vecCarVel = olc::GFX3D::Math::Mat_MultiplyVector(m, a);
+
+		if (GetKey(olc::Key::UP).bHeld)
+		{
+			vecCarPos.x += vecCarVel.x * fCarSpeed * fElapsedTime;
+			vecCarPos.y += vecCarVel.y * fCarSpeed * fElapsedTime;
+		}
+
 		Clear(olc::BLUE);
 		olc::GFX3D::ClearDepth();
 
 		olc::GFX3D::vec3d vLookTarget = olc::GFX3D::Math::Vec_Add(vEye, vLookDir);
 
-		vEye = { fCameraX, fCameraY, fCameraZ };
+		vEye = { vecCarPos.x, vecCarPos.y, fCameraZ };
 		pipeRender.SetCamera(vEye, vLookTarget, vUp);
 
 		int nStartX = 0, nEndX = nMapWidth;
@@ -156,6 +169,22 @@ public:
 				}
 			}
 		}		
+
+		// set origin to the centre of the quad
+		olc::GFX3D::mat4x4 matCarOffset = olc::GFX3D::Math::Mat_MakeTranslation(-0.5f, -0.5f, -0.0f);
+		olc::GFX3D::mat4x4 matCarScale = olc::GFX3D::Math::Mat_MakeScale(0.4f, 0.2f, 1.0f);
+		olc::GFX3D::mat4x4 matCar = olc::GFX3D::Math::Mat_MultiplyMatrix(matCarOffset, matCarScale);
+		olc::GFX3D::mat4x4 matCarRot = olc::GFX3D::Math::Mat_MakeRotationZ(fCarAngle);
+		matCar = olc::GFX3D::Math::Mat_MultiplyMatrix(matCar, matCarRot);
+		olc::GFX3D::mat4x4 matCarTrans = olc::GFX3D::Math::Mat_MakeTranslation(vecCarPos.x, vecCarPos.y, -0.01f);
+		matCar = olc::GFX3D::Math::Mat_MultiplyMatrix(matCar, matCarTrans);
+
+		pipeRender.SetTransform(matCar);
+		pipeRender.SetTexture(sprCar);
+
+		SetPixelMode(olc::Pixel::ALPHA);
+		pipeRender.Render(meshFlat.tris);
+		SetPixelMode(olc::Pixel::NORMAL);
 
 		return true;
 	}
@@ -195,6 +224,12 @@ private:
 	float fCameraX = 0.0f;
 	float fCameraY = 0.0f;
 	float fCameraZ = -10.0f;
+
+	// car
+	float fCarAngle = 0.f;
+	float fCarSpeed = 2.0f;
+	olc::GFX3D::vec3d vecCarVel{ 0, 0, 0 };
+	olc::GFX3D::vec3d vecCarPos{ 0, 0, 0 };
 };
 
 
