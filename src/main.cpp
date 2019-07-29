@@ -29,6 +29,11 @@ public:
 			DrawPartialSprite(0, 0, sprAll, (r % 3) * 96, (r / 3) * 96, 96, 96);
 		}
 
+		// grass
+		sprGround = new olc::Sprite(96, 96);
+		SetDrawTarget(sprGround);
+		DrawPartialSprite(0, 0, sprAll, 192, 0, 96, 96);
+
 		// ! set draw target back to null !
 		SetDrawTarget(nullptr);
 
@@ -95,30 +100,62 @@ public:
 
 		pipeRender.SetProjection(90.f, (float)ScreenHeight() / (float)ScreenWidth(), 0.1f, 1000.f, 0.f, 0.f, ScreenWidth(), ScreenHeight());
 
+		// city map
+		nMapWidth = 64;
+		nMapHeight = 32;
+		pMap = new sCell[nMapWidth * nMapHeight];
+		for (int x = 0; x < nMapWidth; x++)
+		{
+			for (int y = 0; y < nMapHeight; y++) 
+			{
+				pMap[y * nMapWidth + x].nHeight = 0;
+				pMap[y * nMapWidth + x].bRoad = false;
+			}
+		}
 
 		return true;
 	}
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		fTheta += fElapsedTime;
+		if (GetKey(olc::Key::W).bHeld) fCameraY -= 2.0f * fElapsedTime;
+		if (GetKey(olc::Key::S).bHeld) fCameraY += 2.0f * fElapsedTime;
+		if (GetKey(olc::Key::A).bHeld) fCameraX -= 2.0f * fElapsedTime;
+		if (GetKey(olc::Key::D).bHeld) fCameraX += 2.0f * fElapsedTime;
+		if (GetKey(olc::Key::Z).bHeld) fCameraZ += 5.0f * fElapsedTime;
+		if (GetKey(olc::Key::X).bHeld) fCameraZ -= 5.0f * fElapsedTime;
 
-		Clear(olc::BLACK);
+		Clear(olc::BLUE);
 		olc::GFX3D::ClearDepth();
 
 		olc::GFX3D::vec3d vLookTarget = olc::GFX3D::Math::Vec_Add(vEye, vLookDir);
 
+		vEye = { fCameraX, fCameraY, fCameraZ };
 		pipeRender.SetCamera(vEye, vLookTarget, vUp);
 
-		olc::GFX3D::mat4x4 matRotateX = olc::GFX3D::Math::Mat_MakeRotationX(fTheta);
-		olc::GFX3D::mat4x4 matRotateZ = olc::GFX3D::Math::Mat_MakeRotationZ(fTheta / 3.0f);
-		olc::GFX3D::mat4x4 matWorld = olc::GFX3D::Math::Mat_MultiplyMatrix(matRotateX, matRotateZ);
+		int nStartX = 0, nEndX = nMapWidth;
+		int nStartY = 0, nEndY = nMapHeight;
 
-		pipeRender.SetTransform(matWorld);
-
-		pipeRender.SetTexture(sprAll);
-
-		pipeRender.Render(meshCube.tris);
+		for (int x = nStartX; x < nEndX; x++)
+		{
+			for (int y = nStartY; y < nEndY; y++) 
+			{				
+				if (pMap[y * nMapWidth + x].bRoad)
+				{
+				}
+				else
+				{
+					if (pMap[y * nMapWidth + x].nHeight == 0)
+					{
+						// ground 
+						olc::GFX3D::mat4x4 matWorld = olc::GFX3D::Math::Mat_MakeTranslation(x, y, 0.f);
+						pipeRender.SetTransform(matWorld);
+						pipeRender.SetTexture(sprGround);
+						pipeRender.Render(meshFlat.tris);
+					}
+				}
+			}
+		}		
 
 		return true;
 	}
@@ -143,6 +180,21 @@ private:
 	olc::Sprite* sprCar;
 
 	float fTheta = 0.f;
+
+	// cell
+	struct sCell {
+		int nHeight = 0;
+		bool bRoad = false;
+	};
+
+	// map variables
+	int nMapWidth, nMapHeight;
+	sCell* pMap;
+
+	// camera position
+	float fCameraX = 0.0f;
+	float fCameraY = 0.0f;
+	float fCameraZ = -10.0f;
 };
 
 
