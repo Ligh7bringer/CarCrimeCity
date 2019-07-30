@@ -68,6 +68,7 @@
 #include <algorithm>
 #include <vector>
 #include <list>
+#include <cstring>
 #undef min
 #undef max
 
